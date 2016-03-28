@@ -128,7 +128,7 @@ func (s *TCPSvr) run() {
 				closed := s.readFd(int(sockFd))
 				fmt.Printf("read over closed: %v\n", closed)
 				if closed {
-					s.DelConn()
+					s.DelConn(int(sockFd))
 				}
 			} else if events[ev].Events&syscall.EPOLLOUT > 0 {
 				println("out")
@@ -141,7 +141,7 @@ func (s *TCPSvr) run() {
 }
 
 func (s *TCPSvr) writeFd(fd int) {
-	if _, ok := s.GetConn(fd); !ok {
+	if ok := s.GetConn(fd); !ok {
 		return
 	}
 	res := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\nHello World", 11)
