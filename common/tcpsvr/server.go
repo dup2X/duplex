@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"sync"
 	"syscall"
 )
 
@@ -21,10 +22,30 @@ type Message struct {
 }
 
 type TCPSvr struct {
+	sync.RWMutex
 	listenFd int
 	epFd     int
-	conns    map[int]int32
+	conns    map[int]struct{}
 	inbs     chan *Message
+}
+
+func (s *TCPSvr) GetConn(conn int) (ok bool) {
+	s.RLock()
+	defer s.RUnlock()
+	_, ok = s.conns[conn]
+	return
+}
+
+func (s *TCPSvr) DelConn(conn int) {
+	s.Lock()
+	defer s.Unlock()
+	delete(s.conns, conn)
+}
+
+func (s *TCPSvr) PutConn(conn int) {
+	s.Lock()
+	defer s.Unlock()
+	s.conns[conn] = struct{}{}
 }
 
 func (s *TCPSvr) sendLoop() {
@@ -96,7 +117,7 @@ func (s *TCPSvr) run() {
 					fmt.Printf("epoll_ctl:%d %v\n", connFd, err)
 					continue
 				}
-				s.conns[connFd] = event.Fd
+				s.PutConn(connFd)
 			} else if events[ev].Events&syscall.EPOLLIN > 0 {
 				fmt.Printf("event = %d\n", events[ev].Events)
 				sockFd := events[ev].Fd
@@ -106,6 +127,9 @@ func (s *TCPSvr) run() {
 				fmt.Sprintf("in fd=%d\n", sockFd)
 				closed := s.readFd(int(sockFd))
 				fmt.Printf("read over closed: %v\n", closed)
+				if closed {
+					s.DelConn()
+				}
 			} else if events[ev].Events&syscall.EPOLLOUT > 0 {
 				println("out")
 			} else {
@@ -117,6 +141,9 @@ func (s *TCPSvr) run() {
 }
 
 func (s *TCPSvr) writeFd(fd int) {
+	if _, ok := s.GetConn(fd); !ok {
+		return
+	}
 	res := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\nHello World", 11)
 	var buf = []byte(res)
 	n, err := syscall.Write(fd, buf)
@@ -164,7 +191,7 @@ func (s *TCPSvr) readFd(fd int) (closed bool) {
 
 func main() {
 	s := &TCPSvr{}
-	s.conns = make(map[int]int32)
+	s.conns = make(map[int]struct{})
 	s.inbs = make(chan *Message, 1024)
 	go s.sendLoop()
 	s.run()
