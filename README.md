@@ -1,1 +1,5 @@
 # duplex
+
+> gokafka
+> memory pool 
+
