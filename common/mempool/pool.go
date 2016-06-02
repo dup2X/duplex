@@ -35,6 +35,7 @@ func (bp *BufferPool) Get() *bytes.Buffer {
 func (bp *BufferPool) Put(bf *bytes.Buffer) {
 	bf.Reset()
 	if cap(bf.Bytes()) > bp.cap {
+		// TODO
 		old := bf
 		bp.pool.Put(old)
 		bf = bp.pool.Get().(*bytes.Buffer)
