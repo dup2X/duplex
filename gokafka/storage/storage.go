@@ -15,4 +15,6 @@ func Get(dst int, src int, offset int64, count int) {
 	return
 }
 
-func Put() {}
+func Put(msg Message) {
+
+}

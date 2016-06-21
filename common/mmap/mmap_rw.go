@@ -13,7 +13,7 @@ var errInvalidSize = errors.New("Invalid size, must be 1024*N")
 type MmapFileWriter struct {
 	f    *os.File
 	size int64
-	addr uintptr
+	addr uintptr // unsafe ?
 
 	mu       *sync.Mutex
 	buf      []byte
