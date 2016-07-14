@@ -10,7 +10,7 @@ func String(data []byte) (str string) {
 		return ""
 	}
 
-	ptrBytes := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	ptrBytes := (*reflect.SliceHeader)(unsafe.Pointer(&data))
 	ptrString := (*reflect.SliceHeader)(unsafe.Pointer(&str))
 	ptrString.Data = ptrBytes.Data
 	ptrString.Len = ptrBytes.Len
